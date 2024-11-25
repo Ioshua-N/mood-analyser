@@ -2,9 +2,29 @@ from flask import Flask, request, jsonify, render_template
 from nltk.sentiment import SentimentIntensityAnalyzer
 import os
 import pandas as pd
+from googletrans import Translator
+from langdetect import detect
 
 app = Flask(__name__)
 sia = SentimentIntensityAnalyzer()
+translator = Translator()
+
+# Função para verificar se o texto está em inglês
+def is_english(texto):
+    try:
+        # Detecta o idioma do texto
+        idioma = detect(texto)
+        return idioma == 'en'
+    except:
+        return False  # Se houver erro na detecção, assume que não é inglês
+
+# Função para traduzir texto de português para inglês
+def traduzir_texto(texto):
+    try:
+        traducao = translator.translate(texto, src='pt', dest='en')  # Traduz de PT para EN
+        return traducao.text
+    except Exception as e:
+        return str(e)
 
 # Rota principal - página HTML
 @app.route('/')
@@ -18,6 +38,10 @@ def analyze():
     text = data.get('text', '')
     if not text.strip():
         return jsonify({"error": "Texto vazio"}), 400
+    
+    # Se o texto não estiver em inglês, traduz
+    if not is_english(text):
+        text = traduzir_texto(text)
     
     scores = sia.polarity_scores(text)
     compound = scores['compound']
@@ -46,7 +70,11 @@ def upload():
         
         results = []
         for text in df['text']:
-            scores = sia.polarity_scores(str(text))
+            # Se o texto não estiver em inglês, traduz
+            if not is_english(text):
+                text = traduzir_texto(str(text))
+            
+            scores = sia.polarity_scores(text)
             compound = scores['compound']
             mood = "positivo" if compound > 0.05 else "negativo" if compound < -0.05 else "neutro"
             results.append({"text": text, "mood": mood, "scores": scores})
