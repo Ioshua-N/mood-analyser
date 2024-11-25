@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análise de Sentimento</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: auto;
+        }
+
+        .results {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Análise de Sentimento</h1>
+
+        <h2>Texto Único</h2>
+        <textarea id="text" rows="4" cols="50" placeholder="Digite um texto aqui..."></textarea>
+        <button onclick="analyzeText()">Analisar</button>
+        <div id="text-results" class="results"></div>
+
+        <h2>Upload de Arquivo</h2>
+        <input type="file" id="fileInput">
+        <button onclick="uploadFile()">Enviar Arquivo</button>
+        <div id="file-results" class="results"></div>
+    </div>
+
+    <script>
+        async function analyzeText() {
+            const text = document.getElementById('text').value;
+            const response = await fetch('/analyze', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text }),
+            });
+            const result = await response.json();
+            const resultsDiv = document.getElementById('text-results');
+
+            if (response.ok) {
+                resultsDiv.innerHTML = `<p>Mood: <strong>${result.mood}</strong></p>
+                                             <p>Detalhes: ${JSON.stringify(result.scores)}</p>`;
+            } else {
+                resultsDiv.innerHTML = `<p>Erro: ${result.error}</p>`;
+            }
+        }
+
+        async function uploadFile() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await fetch('/upload', {
+                method: 'POST',
+                body: formData,
+            });
+            const resultsDiv = document.getElementById('file-results');
+            const result = await response.json();
+
+            if (response.ok) {
+                const output = result.map(item =>
+                    `<p>Texto: ${item.text} - Mood: <strong>${item.mood}</strong></p>`
+                ).join('');
+                resultsDiv.innerHTML = `<div>${output}</div>`;
+            } else {
+                resultsDiv.innerHTML = `<p>Erro: ${result.error}</p>`;
+            }
+        }
+    </script>
+
+</body>
+
+</html>
